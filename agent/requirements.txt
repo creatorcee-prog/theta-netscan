@@ -1,0 +1,2 @@
+# Optional
+zeroconf>=0.131.0
