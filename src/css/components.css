@@ -1,0 +1,192 @@
+/* Component-specific styles */
+
+/* Capability panel items */
+.cap-section { margin-bottom: 18px; }
+.cap-section h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+.cap-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+}
+.cap-status {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+.cap-status.available { background: var(--green); }
+.cap-status.partial { background: var(--orange); }
+.cap-status.unavailable { background: var(--text-muted); }
+.cap-status.backend { background: var(--blue); }
+.cap-info { flex: 1; }
+.cap-name { font-weight: 500; font-size: 13px; }
+.cap-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.cap-backend {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-top: 3px;
+}
+
+/* Device category badges */
+.cat-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+.cat-router { background: rgba(88,166,255,0.15); color: var(--blue); }
+.cat-switch { background: rgba(163,113,247,0.15); color: var(--purple); }
+.cat-ap { background: rgba(45,212,191,0.15); color: var(--teal); }
+.cat-firewall { background: rgba(248,81,73,0.15); color: var(--red); }
+.cat-server { background: rgba(63,185,80,0.15); color: var(--green); }
+.cat-endpoint { background: rgba(210,153,34,0.15); color: var(--orange); }
+.cat-unknown { background: var(--bg-hover); color: var(--text-muted); }
+
+/* Confidence badges */
+.conf-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+}
+.conf-verified { background: rgba(63,185,80,0.2); color: var(--green); }
+.conf-observed { background: rgba(57,197,207,0.2); color: var(--cyan); }
+.conf-inferred { background: rgba(210,153,34,0.2); color: var(--orange); }
+.conf-unknown { background: var(--bg-hover); color: var(--text-muted); }
+
+/* Inspector sections */
+.insp-section {
+  margin-bottom: 18px;
+}
+.insp-section h3 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.insp-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-size: 13px;
+  gap: 12px;
+}
+.insp-label { color: var(--text-muted); flex-shrink: 0; }
+.insp-value { color: var(--text-primary); text-align: right; word-break: break-all; }
+
+/* Evidence list */
+.evidence-item {
+  font-size: 12px;
+  padding: 6px 8px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  margin-bottom: 4px;
+  border-left: 3px solid var(--cyan);
+}
+.evidence-item .ev-source {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.evidence-item .ev-time {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* Alerts */
+.alert-item {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+}
+.alert-sev {
+  width: 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.alert-sev.critical { background: var(--red); }
+.alert-sev.high { background: var(--orange); }
+.alert-sev.medium { background: var(--yellow); }
+.alert-sev.low { background: var(--blue); }
+.alert-sev.info { background: var(--text-muted); }
+.alert-body { flex: 1; }
+.alert-title { font-weight: 500; font-size: 13px; }
+.alert-meta { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+/* Import validation */
+.validation-report {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-top: 12px;
+  font-size: 13px;
+}
+.validation-report h4 { margin-bottom: 8px; font-size: 13px; }
+.val-ok { color: var(--green); }
+.val-warn { color: var(--orange); }
+.val-err { color: var(--red); }
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 14px;
+  overflow-x: auto;
+}
+.tab {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  user-select: none;
+}
+.tab.active {
+  color: var(--cyan);
+  border-bottom-color: var(--cyan);
+}
+.tab:hover { color: var(--text-primary); }
+
+/* Progress / spinner */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+  border-top-color: var(--cyan);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
