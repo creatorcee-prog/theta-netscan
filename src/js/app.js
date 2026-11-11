@@ -10,6 +10,8 @@ import * as storage from './storage.js';
 import { importDevicesFromCSV, importSessionJSON } from './import.js';
 import { detectBackend, BROWSER_CAPABILITIES } from './capabilities.js';
 import { TopologyRenderer } from './topology.js';
+import { getAdapterCapabilities, runAdapters, getAvailableAdapters } from './adapters/registry.js';
+import { processDiscoveryResults } from './pipeline.js';
 
 let sessionsMeta = [];
 let currentSession = null;
@@ -144,15 +146,6 @@ function renderCapabilityPanel() {
     }
     html += '</div>';
   }
-  html += `<div class="cap-section"><h3>Planned Backends</h3>
-    <div class="cap-item"><div class="cap-status backend"></div><div class="cap-info">
-      <div class="cap-name">Native iOS Companion</div>
-      <div class="cap-desc">Bonjour/mDNS, local-network APIs, permission-aware discovery.</div>
-    </div></div>
-    <div class="cap-item"><div class="cap-status backend"></div><div class="cap-info">
-      <div class="cap-name">Windows / Linux Agent</div>
-      <div class="cap-desc">ARP, ICMP, SNMP, LLDP/CDP, interface counters, packet capture where authorized.</div>
-    </div></div></div>`;
   body.innerHTML = html;
 }
 
@@ -235,7 +228,7 @@ async function renderView(name) {
   if (!currentSession && name !== 'settings') {
     main.innerHTML = `<div class="view active"><div class="empty-state">
       <h3>No active session</h3>
-      <p>Create a new network session to begin documenting devices, relationships, and diagnostics.</p>
+      <p>Create a new network session to begin.</p>
       <button class="btn btn-primary" id="empty-new-session">New Session</button>
     </div></div>`;
     $('#empty-new-session')?.addEventListener('click', createNewSession);
@@ -246,10 +239,10 @@ async function renderView(name) {
     case 'map': return renderMap();
     case 'devices': return renderDevices();
     case 'infrastructure': return renderInfrastructure();
-    case 'traffic': return renderPlaceholder('Traffic', 'Interface counters and throughput require SNMP or a local agent.');
-    case 'diagnostics': return renderPlaceholder('Diagnostics', 'Ping, traceroute, and service probes require a native agent. Browser mode is limited.');
+    case 'traffic': return renderPlaceholder('Traffic', 'Requires SNMP or local agent.');
+    case 'diagnostics': return renderPlaceholder('Diagnostics', 'Requires native agent.');
     case 'alerts': return renderAlerts();
-    case 'history': return renderPlaceholder('Scan History', 'Discovery runs will appear here when adapters execute via an agent.');
+    case 'history': return renderHistory();
     case 'reports': return renderReports();
     case 'settings': return renderSettings();
     default: main.innerHTML = `<div class="view active"><p>Unknown view</p></div>`;
@@ -277,7 +270,10 @@ function renderOverview() {
 
   main.innerHTML = `<div class="view active">
     <div class="view-header"><h1 class="view-title">${esc(s.siteName)}</h1>
-      <div class="view-actions"><button class="btn btn-secondary btn-sm" id="ov-refresh">Refresh</button></div></div>
+      <div class="view-actions">
+        <button class="btn btn-primary btn-sm" id="ov-discover">Run Discovery</button>
+        <button class="btn btn-secondary btn-sm" id="ov-refresh">Refresh</button>
+      </div></div>
     <div class="card"><div class="card-header"><span class="card-title">Session</span></div>
       <div class="insp-row"><span class="insp-label">Client</span><span class="insp-value">${esc(s.clientName) || '—'}</span></div>
       <div class="insp-row"><span class="insp-label">Location</span><span class="insp-value">${esc(s.location) || '—'}</span></div>
@@ -305,12 +301,10 @@ function renderOverview() {
     <div class="card"><div class="card-header"><span class="card-title">Discovery Capability</span>
       <button class="btn btn-secondary btn-sm" id="ov-cap">Details</button></div>
       <p class="text-secondary" style="font-size:13px;line-height:1.5;margin-bottom:8px">
-        Running in <strong>browser-only mode</strong>. ARP, ICMP, SNMP, LLDP/CDP are unavailable.
-        Manual registration, CSV/JSON import, and topology editing are fully supported.
+        Browser-only mode. Use <strong>Run Discovery</strong> to exercise the pipeline (demo sample). Real ARP/mDNS/SNMP need an agent.
       </p>
       <div class="flex gap-8" style="flex-wrap:wrap">
-        <span class="badge badge-ok">Manual + Import</span>
-        <span class="badge badge-warn">Partial DNS/TCP</span>
+        <span class="badge badge-ok">Manual + Import + Demo</span>
         <span class="badge badge-err">No ARP/ICMP/SNMP</span>
       </div>
     </div>
@@ -321,6 +315,7 @@ function renderOverview() {
     capabilityModal.classList.add('open');
   });
   $('#ov-refresh')?.addEventListener('click', () => renderOverview());
+  $('#ov-discover')?.addEventListener('click', () => runDiscovery());
 }
 
 function renderMap() {
@@ -403,7 +398,7 @@ function renderDevices() {
     </div>
     ${devices.length === 0 ? `<div class="empty-state">
       <h3>No devices yet</h3>
-      <p>Manually register devices or import a CSV.</p>
+      <p>Add manually, import CSV, or Run Discovery.</p>
       <button class="btn btn-primary" id="dev-empty-add">Add Device</button>
     </div>` : `<div class="table-wrap"><table class="data-table">
       <thead><tr><th>Status</th><th>Hostname</th><th>IP</th><th>MAC</th><th>Category</th><th>Source</th></tr></thead>
@@ -543,12 +538,12 @@ function showRelationshipForm() {
     <div class="view-header"><h1 class="view-title">Add Relationship</h1>
       <button class="btn btn-secondary btn-sm" id="rel-cancel">Cancel</button></div>
     <div class="card">
-      <p class="text-secondary mb-16" style="font-size:13px">Relationships drive the topology map. Only create links with evidence.</p>
-      <div class="form-group"><label class="form-label">Source Device</label>
+      <p class="text-secondary mb-16" style="font-size:13px">Relationships drive the topology map.</p>
+      <div class="form-group"><label class="form-label">Source</label>
         <select class="form-select" id="rel-src">
           ${devices.map(d => `<option value="${d.id}">${esc(d.hostname || d.ipAddress || d.id.slice(0,8))} (${esc(d.category)})</option>`).join('')}
         </select></div>
-      <div class="form-group"><label class="form-label">Destination Device</label>
+      <div class="form-group"><label class="form-label">Destination</label>
         <select class="form-select" id="rel-dst">
           ${devices.map(d => `<option value="${d.id}">${esc(d.hostname || d.ipAddress || d.id.slice(0,8))} (${esc(d.category)})</option>`).join('')}
         </select></div>
@@ -594,7 +589,7 @@ function renderInfrastructure() {
   main.innerHTML = `<div class="view active">
     <div class="view-header"><h1 class="view-title">Infrastructure</h1></div>
     ${infra.length === 0
-      ? `<div class="empty-state"><h3>No infrastructure devices</h3><p>Add routers, switches, or APs in Devices.</p></div>`
+      ? `<div class="empty-state"><h3>No infrastructure devices</h3></div>`
       : `<div class="table-wrap"><table class="data-table">
         <thead><tr><th>Hostname</th><th>IP</th><th>Category</th><th>Model</th></tr></thead>
         <tbody>${infra.map(d => `<tr class="clickable" data-id="${d.id}">
@@ -612,7 +607,7 @@ function renderAlerts() {
   main.innerHTML = `<div class="view active">
     <div class="view-header"><h1 class="view-title">Alerts (${alerts.filter(a => !a.resolved).length} open)</h1></div>
     ${alerts.length === 0
-      ? `<div class="empty-state"><h3>No alerts</h3><p>Alerts appear when devices are added.</p></div>`
+      ? `<div class="empty-state"><h3>No alerts</h3></div>`
       : alerts.map(a => `<div class="alert-item">
         <div class="alert-sev ${a.severity}"></div>
         <div class="alert-body">
@@ -633,7 +628,6 @@ function renderReports() {
     </div>
     <div class="card"><div class="card-header"><span class="card-title">Import Session</span></div>
       <input type="file" id="json-file" accept=".json,application/json" />
-      <div id="import-result"></div>
     </div>
   </div>`;
   $('#rep-json')?.addEventListener('click', () => { storage.exportSessionJSON(currentSession); toast('Session exported'); });
@@ -642,7 +636,7 @@ function renderReports() {
     const file = e.target.files?.[0];
     if (!file) return;
     const text = await file.text();
-    const { session, report } = importSessionJSON(text);
+    const { session } = importSessionJSON(text);
     if (session) {
       await storage.saveSession(session);
       currentSession = session;
@@ -675,7 +669,7 @@ function renderSettings() {
     <div class="card"><div class="card-header"><span class="card-title">About</span></div>
       <p style="font-size:13px;line-height:1.5">
         <strong>NetScan v0.3</strong> — Network Intelligence & Field Diagnostics.<br>
-        Vendor-neutral. Browser-first PWA. Data stays on this device unless you export it.
+        Vendor-neutral. Browser-first PWA with modular discovery adapters.
       </p>
     </div>
   </div>`;
@@ -697,6 +691,89 @@ function renderSettings() {
     else renderView('overview');
     toast('Session deleted');
   });
+}
+
+async function runDiscovery(adapterIds = null) {
+  if (!currentSession) { toast('No session', 'error'); return; }
+  toast('Running discovery…');
+  const ids = adapterIds || getAvailableAdapters().map(a => a.id);
+  const runnable = ids.filter(id => !['manual', 'csv-import'].includes(id));
+  const toRun = runnable.length ? runnable : ids;
+  const startedAt = new Date().toISOString();
+  try {
+    const results = await runAdapters(toRun, {});
+    const { summary } = processDiscoveryResults(currentSession, results, {
+      startedAt,
+      backend: 'browser',
+      trigger: 'manual'
+    });
+    await persist();
+    toast(`Discovery done: ${summary.newDevices} new, ${summary.updatedDevices} updated, ${summary.observations} observations`, 'success');
+    if (currentView === 'history') renderHistory();
+    else if (currentView === 'overview') renderOverview();
+    else if (currentView === 'devices') renderDevices();
+    else if (currentView === 'map') renderMap();
+  } catch (err) {
+    console.error(err);
+    toast('Discovery failed: ' + err.message, 'error');
+  }
+}
+
+function renderHistory() {
+  const runs = currentSession.discoveryRuns || [];
+  const caps = getAdapterCapabilities();
+
+  main.innerHTML = `<div class="view active">
+    <div class="view-header">
+      <h1 class="view-title">Scan History</h1>
+      <div class="view-actions">
+        <button class="btn btn-primary btn-sm" id="hist-run">Run Discovery</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">Adapters</span></div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${caps.map(c => `
+          <div class="cap-item" style="margin:0">
+            <div class="cap-status ${c.available ? 'available' : 'unavailable'}"></div>
+            <div class="cap-info">
+              <div class="cap-name">${esc(c.name)}
+                <span class="badge ${c.available ? 'badge-ok' : 'badge-err'}" style="margin-left:6px">${c.available ? 'ready' : 'unavailable'}</span>
+              </div>
+              <div class="cap-desc">${esc(c.description || '')}</div>
+              <div class="cap-backend">${esc(c.protocol)} · ${esc(c.backend)}
+                ${c.lastRunAt ? ` · last ${fmtTime(c.lastRunAt)}` : ''}
+                ${c.lastResultCount ? ` · ${c.lastResultCount} results` : ''}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">Discovery Runs (${runs.length})</span></div>
+      ${runs.length === 0
+        ? `<div class="empty-state" style="padding:24px 12px">
+            <h3>No discovery runs yet</h3>
+            <p>Tap <strong>Run Discovery</strong> to exercise available adapters. In browser mode this runs the demo sample so you can verify the pipeline.</p>
+          </div>`
+        : runs.map(run => `
+          <div class="alert-item" style="margin-bottom:8px">
+            <div class="alert-sev ${run.errors?.length ? 'high' : 'info'}"></div>
+            <div class="alert-body">
+              <div class="alert-title">${fmtTime(run.startedAt)} · ${run.observationCount} observations · ${run.deviceCountDelta >= 0 ? '+' : ''}${run.deviceCountDelta} devices</div>
+              <div class="alert-meta">
+                ${(run.adapters || []).map(a => `${a.adapterId}: ${a.status}${a.resultCount ? ' ('+a.resultCount+')' : ''}`).join(' · ')}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+    </div>
+  </div>`;
+
+  $('#hist-run')?.addEventListener('click', () => runDiscovery());
 }
 
 async function boot() {
