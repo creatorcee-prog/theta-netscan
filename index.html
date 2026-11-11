@@ -6,17 +6,15 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#0d1117" />
-  <meta name="description" content="Theta NetScan — Network Intelligence & Field Diagnostics Platform" />
+  <meta name="description" content="NetScan — Network Intelligence & Field Diagnostics Platform" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="public/icon-192.png" />
-  <title>Theta NetScan</title>
+  <title>NetScan</title>
   <link rel="stylesheet" href="src/css/main.css" />
   <link rel="stylesheet" href="src/css/topology.css" />
   <link rel="stylesheet" href="src/css/components.css" />
 </head>
 <body>
   <div id="app">
-    <!-- Header -->
     <header class="app-header">
       <div class="header-left">
         <button id="nav-toggle" class="icon-btn" aria-label="Toggle navigation">
@@ -25,7 +23,7 @@
           </svg>
         </button>
         <div class="brand">
-          <span class="brand-mark">Θ</span>
+          <span class="brand-mark">NS</span>
           <span class="brand-name">NetScan</span>
           <span class="version">v0.3</span>
         </div>
@@ -46,7 +44,6 @@
       </div>
     </header>
 
-    <!-- Navigation Drawer -->
     <nav id="nav-drawer" class="nav-drawer">
       <ul class="nav-list">
         <li data-view="overview" class="nav-item active"><span class="nav-icon">◉</span> Overview</li>
@@ -66,12 +63,8 @@
     </nav>
     <div id="nav-overlay" class="nav-overlay"></div>
 
-    <!-- Main Content -->
-    <main id="main-content" class="main-content">
-      <!-- Views injected by JS -->
-    </main>
+    <main id="main-content" class="main-content"></main>
 
-    <!-- Device Inspector (slide-over) -->
     <aside id="device-inspector" class="inspector closed">
       <div class="inspector-header">
         <h2 id="inspector-title">Device</h2>
@@ -80,7 +73,6 @@
       <div id="inspector-body" class="inspector-body"></div>
     </aside>
 
-    <!-- Capability Panel (modal) -->
     <div id="capability-modal" class="modal closed">
       <div class="modal-content">
         <div class="modal-header">
@@ -91,7 +83,6 @@
       </div>
     </div>
 
-    <!-- Toast container -->
     <div id="toast-container"></div>
   </div>
 
